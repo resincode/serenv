@@ -1,0 +1,76 @@
+#!/bin/sh
+
+case "$1" in
+  cpu)
+    STAT="/dev/shm/.tmux_cpu_stat"
+    NOW=$(date +%s.%N)
+    USAGE=$(awk '/usage_usec/ {print $2}' /sys/fs/cgroup/cpu.stat 2>/dev/null)
+    
+    CPU_PCT=0
+    if [ -f "$STAT" ] && [ -n "$USAGE" ]; then
+      read LAST_T LAST_U < "$STAT"
+      CPU_PCT=$(awk -v t1="$LAST_T" -v t2="$NOW" -v u1="$LAST_U" -v u2="$USAGE" 'BEGIN {
+        dt = t2 - t1
+        du = (u2 - u1) / 1000000
+        if (dt > 0.5) {
+          pct = (du / (dt * 4)) * 100
+          if (pct > 100) pct = 100
+          if (pct < 0) pct = 0
+          printf "%.0f", pct
+        } else {
+          printf "0"
+        }
+      }')
+    fi
+    echo "$NOW $USAGE" > "$STAT"
+    awk -v pct="$CPU_PCT" 'BEGIN {
+      len = 5
+      filled = int((pct * len + 50) / 100)
+      if (filled > len) filled = len
+      if (filled < 0) filled = 0
+      bar = ""
+      for (i=0; i<filled; i++) bar = bar "■"
+      for (i=0; i<len-filled; i++) bar = bar "□"
+      printf "%s %d%%", bar, pct
+    }'
+    ;;
+  ram)
+    awk '/^MemTotal:/{t=$2} /^MemAvailable:/{a=$2} END {
+      used = t - a
+      pct = int((used * 100) / t)
+      len = 5
+      filled = int((pct * len + 50) / 100)
+      if (filled > len) filled = len
+      if (filled < 0) filled = 0
+      bar = ""
+      for (i=0; i<filled; i++) bar = bar "■"
+      for (i=0; i<len-filled; i++) bar = bar "□"
+      total_g = int(t / 1048576)
+      printf "%s %dG", bar, total_g
+    }' /proc/meminfo
+    ;;
+  disk)
+    df -hP / | awk 'NR==2 {
+      sub(/%/, "", $5)
+      pct = int($5)
+      len = 5
+      filled = int((pct * len + 50) / 100)
+      if (filled > len) filled = len
+      if (filled < 0) filled = 0
+      bar = ""
+      for (i=0; i<filled; i++) bar = bar "■"
+      for (i=0; i<len-filled; i++) bar = bar "□"
+      cap = $2
+      sub(/\.0G/, "G", cap)
+      printf "%s %s", bar, cap
+    }'
+    ;;
+  uptime)
+    awk '{d=int($1/86400); h=int(($1%86400)/3600); if(d>0) printf "%dd %dh", d, h; else printf "%dh", h}' /proc/uptime
+    ;;
+  *)
+    awk '/^MemTotal:/{t=$2} /^MemAvailable:/{a=$2} END {
+      printf "ram: %.1fG/%.0fG", (t-a)/1048576, t/1048576
+    }' /proc/meminfo
+    ;;
+esac

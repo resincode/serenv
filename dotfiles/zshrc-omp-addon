@@ -1,0 +1,18 @@
+
+# ============================================================================
+# OMP MULTI-USER CONTEXT DISPLAY - NEW!
+# Shows: user @ model (workspace) with color-coding by user
+# Colors: res=GREEN | dev=BLUE | agent=YELLOW
+# ============================================================================
+
+# Set model context (default to claude-haiku-4-5)
+export OMP_MODEL="${OMP_MODEL:-claude-haiku-4-5}"
+
+# Initialize Oh My Posh with custom multi-user config
+if command -v op &> /dev/null; then
+    eval "$(op init zsh --config ~/.config/omp/config.json)"
+    echo "✅ OMP initialized: $USER @ $OMP_MODEL"
+else
+    echo "⚠️  Oh My Posh (op) not found. Run: shsetupdoc/scripts/run-all.sh"
+fi
+

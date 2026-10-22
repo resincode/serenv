@@ -26,7 +26,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$SCRIPT_DIR/dotfiles"
-
+VERSION="$(cat "$SCRIPT_DIR/VERSION" 2>/dev/null || echo "1.1.0")"
 SKIP_PACKAGES=0
 SKIP_P10K=0
 SKIP_ZINIT=0
@@ -43,6 +43,7 @@ for arg in "$@"; do
         --skip-p10k)     SKIP_P10K=1 ;;
         --skip-zinit)    SKIP_ZINIT=1 ;;
         --skip-tpm)      SKIP_TPM=1 ;;
+        --version|-v)    echo "serenv v$VERSION"; exit 0 ;;
         --help|-h)       usage ;;
         *) echo "Argumen tidak dikenal: $arg"; usage ;;
     esac
@@ -216,6 +217,7 @@ print_notes() {
 
 # ---------------------------------------------------------------------------
 main() {
+    say "SERENV v${VERSION} — Memulai provisioning server personal..."
     local pkg
     pkg="$(detect_pkg_manager)"
     say "Distro terdeteksi: ${pkg:-unknown}"

@@ -63,21 +63,24 @@ alexwforsythe/tmux-which-key    (menu prefix)
 
 ```tmux
 set -g status-position top
-set -g status-left-length  100
-set -g status-right-length 250
-set -g status-left  "#{E:@catppuccin_status_session} "
-set -g status-right "#{E:@catppuccin_status_application}#{E:@catppuccin_status_directory}#{E:@catppuccin_status_load}#{E:@catppuccin_status_ram}#{E:@catppuccin_status_disk}#{E:@catppuccin_status_uptime}#{E:@catppuccin_status_date_time}"
+set -g status-justify  centre
+set -g status-left-length  150
+set -g status-right-length 150
+set -g status-left  "#{E:@catppuccin_status_session}#{E:@catppuccin_status_application}#{E:@catppuccin_status_directory}#{E:@catppuccin_status_uptime}"
+set -g status-right "#{E:@catppuccin_status_load}#{E:@catppuccin_status_ram}#{E:@catppuccin_status_disk}#{E:@catppuccin_status_date_time}"
 ```
 
-- **Status-left**: Menggabungkan nama session tmux aktif dengan user dan hostname container (`@catppuccin_session_text " #S · #(whoami)@#H"`).
-- **Status-right**: Tersusun berurutan dari kiri ke kanan:
-  1. `application`: nama perintah/aplikasi aktif di pane (maroon pill)
-  2. `directory`: path direktori aktif (rosewater pill)
-  3. `load`: utilisasi CPU riil container dari cgroup v2 (`/sys/fs/cgroup/cpu.stat`) dengan visual indicator bar (peach pill)
-  4. `ram`: indicator bar pemakaian memori terhadap batas limit 4G container (mauve pill)
-  5. `disk`: indicator bar pemakaian storage terhadap batas limit 25G container (teal pill)
-  6. `uptime`: uptime riil container dari `/proc/uptime` (sapphire pill)
-  7. `date_time`: jam & tanggal di posisi paling kanan (sapphire pill)
+- **Status-justify**: `centre` — daftar tab window berada di tengah status bar secara seimbang.
+- **Status-left** (kiri atas, 4 modul):
+  1. `session`: nama sesi tmux aktif, user, dan hostname container (`@catppuccin_session_text " #S · #(whoami)@#H"`).
+  2. `application`: indikator nama perintah/aplikasi yang sedang aktif di pane (maroon pill).
+  3. `directory`: nama direktori/path aktif (rosewater pill).
+  4. `uptime`: uptime riil container dari `/proc/uptime` (sapphire pill).
+- **Status-right** (kanan atas, 4 modul):
+  1. `load`: utilisasi CPU riil container dari cgroup v2 (`/sys/fs/cgroup/cpu.stat`) dengan visual gauge (peach pill).
+  2. `ram`: visual gauge pemakaian memori terhadap batas limit cgroup container (mauve pill).
+  3. `disk`: visual gauge kapasitas storage root filesystem (teal pill).
+  4. `date_time`: format waktu ringkas jam & tanggal (sapphire pill).
 - **Script pembantu**: `~/.local/bin/status-vitals` yang mengekstrak metrik container secara akurat tanpa membaca metrik host Proxmox.
 
 **WAJIB pakai `#{E:@catppuccin_status_...}` (dengan `E:`).** Tanpa `E:`, tmux memasukkan nilai option tanpa re-expand format di dalamnya → teks literal seperti `@catppuccin_session_text` muncul di header (lihat Known Issues #4).

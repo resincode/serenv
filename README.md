@@ -1,5 +1,6 @@
 # serenv
 
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](VERSION)
 [![OS - Alpine](https://img.shields.io/badge/OS-Alpine-blue?logo=alpinelinux&logoColor=white)](https://alpinelinux.org/)
 [![OS - Debian / Ubuntu](https://img.shields.io/badge/OS-Debian%20%2F%20Ubuntu-E95420?logo=ubuntu&logoColor=white)](https://ubuntu.com/)
 [![OS - Fedora](https://img.shields.io/badge/OS-Fedora-294172?logo=fedora&logoColor=white)](https://fedoraproject.org/)
@@ -7,76 +8,102 @@
 [![Multiplexer - Tmux](https://img.shields.io/badge/Multiplexer-Tmux-1BB91F?logo=tmux&logoColor=white)](https://github.com/tmux/tmux)
 [![Theme - Catppuccin Mocha](https://img.shields.io/badge/Theme-Catppuccin%20Mocha-cba6f7?logo=catppuccin&logoColor=white)](https://github.com/catppuccin/tmux)
 [![Prompt - Powerlevel10k](https://img.shields.io/badge/Prompt-Powerlevel10k-informational)](https://github.com/romkatv/powerlevel10k)
+[![License - MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> **Server Environment Bootstrapper & Dotfiles** — Cepat, otomatis, indah, dan siap pakai untuk provisioning server Linux (VPS, container Proxmox/LXC, atau bare-metal).
+> **Server Environment Bootstrapper & Dotfiles** — Cepat, otomatis, konsisten, dan siap pakai untuk provisioning server Linux (VPS, Proxmox LXC container, atau bare-metal) dengan pengalaman shell modern.
 
 ---
 
 ## ⚡ Quickstart
 
-Karena repositori ini bersifat **Private**, pastikan server target memiliki akses ke GitHub:
+Repositori ini berada di GitHub `resincode/serenv`. Pilih salah satu metode instalasi:
 
-### Metode A: Menggunakan SSH Key / Agent Forwarding (Direkomendasikan)
-Saat menghubungkan ke server baru dari mesin lokal Anda:
+### Metode A: SSH Key / Agent Forwarding (Direkomendasikan)
+Hubungkan ke server baru dengan SSH agent forwarding (`-A`):
 ```bash
-# Hubungkan dengan SSH agent forwarding aktif (-A)
+# Hubungkan dari mesin lokal
 ssh -A user@target-server
 
-# Di dalam server, clone dan jalankan setup:
+# Di dalam server target:
 git clone git@github.com:resincode/serenv.git ~/.serenv && bash ~/.serenv/setup.sh
 ```
 
-### Metode B: Menggunakan GitHub CLI / Token
-Jika server telah diautentikasi dengan `gh auth login` atau memiliki Personal Access Token (PAT):
+### Metode B: GitHub CLI / Personal Access Token
+Jika server telah diautentikasi dengan `gh` atau token GitHub:
 ```bash
-SERENV_REPO_URL="https://<TOKEN>@github.com/resincode/serenv.git" bash -c "$(curl -fsSL https://raw.githubusercontent.com/resincode/serenv/main/install.sh?token=<RAW_TOKEN>)"
+SERENV_REPO_URL="https://<TOKEN>@github.com/resincode/serenv.git" \
+  bash -c "$(curl -fsSL https://raw.githubusercontent.com/resincode/serenv/main/install.sh?token=<RAW_TOKEN>)"
 ```
 
-Atau bila repositori diubah menjadi public di masa mendatang:
+Atau instalasi langsung publik (bila repositori bersifat public):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/resincode/serenv/main/install.sh | bash
 ```
 
 ---
 
+## 🖥️ Layout Status Bar Tmux
+
+Status bar Tmux dikonfigurasi di sisi atas (`top`) dengan komposisi modul yang seimbang dan simetris antara sisi kiri dan kanan, serta daftar tab window di posisi tengah (`centre`):
+
+```text
+┌───────────────────────────────────────────────────────────────────────────────────────────────┐
+│ [session] [app] [dir] [uptime]      [ 1:main ] [ 2:code* ]     [cpu] [ram] [disk] [date_time] │
+│ └───────── status-left ─────────┘   └─ status-justify centre ─┘ └─────── status-right ──────┘ │
+└───────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Bagian | Posisi | Modul & Keterangan |
+|---|---|---|
+| **`status-left`** | Kiri atas (4 modul) | • **Session**: `#S · user@host` (identitas sesi aktif)<br>• **App**: ` <proc>` (indikator proses/aplikasi aktif di pane)<br>• **Dir**: ` <path>` (direktori kerja saat ini)<br>• **Uptime**: `󰔟 <duration>` (waktu aktif kontainer/server) |
+| **`status-justify`** | Tengah (`centre`) | • **Window Tabs**: Daftar tab window aktif/inaktif dengan style rounded pill Catppuccin Mocha dan indikator zoom `[Z]`. |
+| **`status-right`** | Kanan atas (4 modul) | • **CPU**: `󰊚 □□□□□ <%>` (gauge utilisasi cgroup v2)<br>• **RAM**: `󰘚 ■■■□□ <used>` (gauge memori terhadap limit cgroup container)<br>• **Disk**: `󰋊 ■□□□□ <used>` (gauge storage root filesystem)<br>• **Time**: `%H:%M  %d %b` (jam & tanggal ringkas) |
+
+---
+
 ## ✨ Fitur Utama
 
 ### 1. Tmux Catppuccin Mocha + Cgroup v2 Container Vitals
-- **Status Bar Modern**: Menggunakan palet Catppuccin Mocha yang elegan dengan ikon Nerd Font.
-- **Container-Aware Vitals**: Status bar menampilkan statistik akurat dari cgroup v2 container (bukan statistik host node):
-  - **CPU Bar**: Visual gauge 5-segmen (`■□□□□`) + persentase penggunaan cgroup.
-  - **RAM Bar**: Visual gauge memori terpakai terhadap limit cgroup container (`cgroup.memory.max`).
-  - **Disk Bar**: Visual gauge kapasitas storage root filesystem.
-  - **Uptime**: Durasi aktif container.
-  - **App & Dir**: Nama proses yang sedang aktif dan direktori saat ini.
-  - **Datetime**: Format waktu ringkas.
-- **TPM (Tmux Plugin Manager)**: Otomatis meng-clone dan menginstall plugin esensial (`sensible`, `resurrect`, `continuum`, `yank`, `catppuccin`, `which-key`).
+- **Status Bar Seimbang**: Penataan 4 modul informasi di kiri, tab window di tengah (`centre`), dan 4 modul metrik di kanan.
+- **Container-Aware Vitals**: Status bar membaca metrik langsung dari cgroup v2 container (bukan statistik host node Proxmox):
+  - **CPU Gauge**: Visual gauge 5-segmen (`■□□□□`) + persentase penggunaan cgroup (`/sys/fs/cgroup/cpu.stat`).
+  - **RAM Gauge**: Visual gauge memori terpakai terhadap limit cgroup container (`cgroup.memory.max`).
+  - **Disk Gauge**: Visual gauge kapasitas storage root filesystem terhadap kuota disk.
+  - **Uptime**: Durasi aktif container dari `/proc/uptime`.
+- **Fitur Terminal Modern**:
+  - **OSC 8 Hyperlinks**: Tautan URL di terminal dapat langsung diklik (`set -as terminal-features ',*:hyperlinks'`).
+  - **OSC 52 Clipboard**: Copy-paste langsung terhubung ke clipboard terminal lokal, bahkan melalui sesi SSH headless bertingkat.
+- **TPM (Tmux Plugin Manager)**: Otomatis mengelola plugin esensial:
+  - `tmux-sensible` (opsi standar yang aman)
+  - `tmux-resurrect` & `tmux-continuum` (simpan & pulihkan sesi otomatis setiap 15 menit)
+  - `tmux-yank` (OSC52 clipboard integration)
+  - `catppuccin/tmux` (tema Mocha dengan rounded pills)
+  - `tmux-which-key` (menu popup panduan keybinding)
 - **Ergonomi Keyboard**:
-  - Prefix `Ctrl-a` (nyaman dan cepat).
-  - Split horizontal `|` dan vertikal `-`.
-  - Navigasi pane intuitif ala Vim (`h`, `j`, `k`, `l`).
-  - Integrasi OSC52 clipboard untuk copy-paste lintas sesi SSH.
+  - Prefix `Ctrl-a` (ergonomis dan cepat).
+  - Split horizontal `|` dan vertikal `-` (otomatis mempertahankan path direktori saat ini).
+  - Navigasi pane intuitif ala Vim (`h`, `j`, `k`, `l` atau `Alt+h/j/k/l`).
 
 ### 2. Zsh + Powerlevel10k High-Contrast Pastel Prompt
-- **Desain 2-Baris**: Baris pertama memuat konteks path dan status Git; baris kedua khusus input command.
-- **Palet Pastel Kontras Tinggi**: Cyan, magenta, dan soft yellow untuk keterbacaan optimal pada tema gelap.
-- **Transient Prompt**: Membersihkan history visual prompt saat menekan Enter, menjaga scrollback tetap rapi.
-- **Command Execution Time**: Otomatis menampilkan durasi eksekusi untuk proses yang berjalan lama (>3s).
-- **Zinit Plugin Manager**: Otomatis mengunduh plugin Zsh unggulan:
-  - `fast-syntax-highlighting` (pewarnaan sintaks cepat dan responsif).
-  - `zsh-autosuggestions` (saran auto-complete cerdas bergaya fish).
-  - `zsh-completions` & `fzf-tab` (pencarian completion interaktif dengan fuzzy finder).
-  - `zsh-z` (navigasi direktori cepat).
+- **Desain 2-Baris**: Baris pertama memuat path direktori dan status Git terperinci; baris kedua khusus input command.
+- **Palet Pastel Kontras Tinggi**: Cyan, magenta, dan soft yellow untuk keterbacaan optimal di berbagai terminal emulator.
+- **Transient Prompt**: Membersihkan riwayat visual prompt saat menekan Enter, menjaga scrollback terminal tetap bersih.
+- **Execution Timer**: Otomatis menampilkan durasi eksekusi untuk perintah yang memakan waktu >3 detik.
+- **Zinit Plugin Ecosystem**:
+  - `fast-syntax-highlighting` (highlighting sintaks perintah seketika).
+  - `zsh-autosuggestions` (auto-complete cerdas berdasarkan riwayat shell).
+  - `zsh-completions` & `fzf-tab` (menu completion interaktif dengan pencarian fuzzy).
+  - `zsh-z` (lompat ke direktori favorit dengan cepat).
 
 ### 3. Otomasi Auto-Attach Tmux saat SSH
-- Saat login via SSH ke server interaktif (TTY), Zsh secara cerdas melakukan atomic attach ke sesi Tmux bernama `resmote` (atau membuat sesi baru bila belum ada).
-- Dilengkapi proteksi nesting agar sesi Tmux di dalam sesi Tmux tidak saling bertumpuk.
+- Saat login ke sesi interaktif via SSH, Zsh secara cerdas melakukan atomic attach ke sesi Tmux bernama `resmote` (atau membuat sesi baru bila belum ada).
+- Proteksi nesting mencegah sesi Tmux bertumpuk di dalam sesi Tmux yang sudah aktif.
 
 ### 4. Modular Local Overrides & Safe Backup
-- **Safe Deployment**: Setiap file konfigurasi lama di `$HOME` yang akan ditimpa otomatis dicadangkan ke direktori `$HOME/.backup-serenv-<timestamp>/`.
+- **Safe Deployment**: Setiap file konfigurasi lama di `$HOME` yang akan ditimpa otomatis dicadangkan ke `$HOME/.backup-serenv-<timestamp>/`.
 - **Local Overrides**:
-  - `~/.zshrc.local`: Simpan variabel environment, alias, atau secret khusus host.
-  - `~/.tmux.conf.local`: Simpan custom keybindings atau opsi tmux khusus mesin lokal.
+  - `~/.zshrc.local`: Simpan variabel environment, alias, atau secret khusus mesin host.
+  - `~/.tmux.conf.local`: Simpan custom keybinding atau konfigurasi khusus mesin host.
 
 ---
 
@@ -85,6 +112,9 @@ curl -fsSL https://raw.githubusercontent.com/resincode/serenv/main/install.sh | 
 `install.sh` meneruskan seluruh argumen CLI langsung ke `setup.sh`:
 
 ```bash
+# Cek versi serenv
+bash setup.sh --version
+
 # Jalankan setup tanpa menginstall paket sistem (hanya deploy dotfiles & plugins)
 bash setup.sh --skip-packages
 
@@ -105,16 +135,17 @@ bash setup.sh --help
 
 ## 📂 Struktur Repositori
 
-```
+```text
 serenv/
+├── VERSION                     # Berkas tracking versi semver (v1.1.0)
 ├── install.sh                  # Entry point bootstrap remote (curl | bash)
 ├── setup.sh                    # Skrip provisioning lokal & modular
-├── README.md                   # Dokumentasi publik repo
-├── SERENV.md                   # Dokumentasi arsitektur internal
-├── AGENTS.md                   # Guidelines kepemilikan & izin akses agen AI
+├── README.md                   # Dokumentasi publik repositori
+├── SERENV.md                   # Dokumentasi teknis & arsitektur internal
+├── AGENTS.md                   # Panduan & boundary kerja agen AI
 ├── .gitignore                  # Filter berkas build/backup
 └── dotfiles/
-    ├── tmux.conf               # Konfigurasi Tmux + Catppuccin + Vitals
+    ├── tmux.conf               # Konfigurasi Tmux + Catppuccin + Centered Vitals
     ├── zshrc                   # Konfigurasi Zsh + Zinit + SSH Auto-attach
     ├── zshenv                  # Environment awal Zsh
     ├── p10k.zsh                # Konfigurasi tema Powerlevel10k 2-baris pastel
@@ -130,19 +161,18 @@ serenv/
 
 ## 🚀 Deployment ke Server Baru
 
-Repositori ini dihosting secara private di `resincode/serenv`:
-
 ```bash
 # Clone via SSH di server target
 git clone git@github.com:resincode/serenv.git ~/.serenv
 
-# Jalankan instalasi
+# Jalankan instalasi penuh
 bash ~/.serenv/setup.sh
 
-# Atau dengan opsi spesifik
+# Atau instalasi tanpa paket distro (jika user non-root/tanpa sudo)
 bash ~/.serenv/setup.sh --skip-packages
 ```
+
 ---
 
 ## 📄 Lisensi
-MIT License — Bebas digunakan dan dimodifikasi untuk kebutuhan server pribadi maupun tim Anda.
+[MIT License](LICENSE) — Bebas digunakan dan dimodifikasi untuk kebutuhan server pribadi maupun tim Anda.

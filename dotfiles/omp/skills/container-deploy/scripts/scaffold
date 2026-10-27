@@ -1,50 +1,43 @@
 #!/usr/bin/env bash
-# scaffold — create ~/Deployments/<app> from the xdiag deployment template.
+# scaffold — create ~/Deployments/<app> from the container-deploy templates.
 #
 #   scaffold <app> <container-port> [domain]
 #
-# Allocates the next free loopback port starting at 18080, copies deploy.sh plus
-# the quadlet and Caddy site templates, and rewrites app name, port, and domain.
-# Idempotent: refuses to overwrite an existing deployment directory.
+# Allocates the next free loopback port from 18080 upward, then renders
+# deploy.sh, <app>.container, and <app>.caddyfile from templates/.
+# Refuses to overwrite an existing deployment directory.
 set -euo pipefail
 
 APP="${1:?usage: scaffold <app> <container-port> [domain]}"
 CPORT="${2:?container port required (the port the image listens on)}"
 DOMAIN="${3:-$APP.keton.id}"
-TEMPLATE="$HOME/Deployments/xdiag"
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+TPL="$SKILL_DIR/templates"
 DEST="$HOME/Deployments/$APP"
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
-[ -d "$TEMPLATE" ] || die "template deployment missing: $TEMPLATE"
+[ -d "$TPL" ] || die "templates missing: $TPL"
 [ -e "$DEST" ] && die "$DEST already exists"
 case "$CPORT" in ''|*[!0-9]*) die "container port must be numeric" ;; esac
 
 # Next free loopback port: highest existing 180xx + 1, verifying nothing listens.
+# (if-statements instead of `&&` chains: a false test must not trip `set -e`.)
 port=18080
 for d in "$HOME"/Deployments/*/; do
-    [ -f "$d"*.container ] 2>/dev/null || continue
-    p="$(grep -hoE '^PublishPort=127\.0\.0\.1:[0-9]+' "$d"*.container 2>/dev/null | sed 's/.*://' | sort -n | tail -1)"
-    [ -n "${p:-}" ] && [ "$p" -ge "$port" ] && port=$((p + 1))
+    [ -d "$d" ] || continue
+    p="$(grep -hoE '^PublishPort=127\.0\.0\.1:[0-9]+' "$d"*.container 2>/dev/null | sed 's/.*://' | sort -n | tail -1 || true)"
+    if [ -n "$p" ] && [ "$p" -ge "$port" ]; then port=$((p + 1)); fi
 done
 while ss -ltn 2>/dev/null | grep -q ":$port "; do port=$((port + 1)); done
 
 mkdir -p "$DEST"
-install -m 0755 "$TEMPLATE/deploy.sh"       "$DEST/deploy.sh"
-install -m 0644 "$TEMPLATE/xdiag.container" "$DEST/$APP.container"
-install -m 0644 "$TEMPLATE/xdiag.caddyfile" "$DEST/$APP.caddyfile"
+render() { sed -e "s|__APP__|$APP|g" -e "s|__DOMAIN__|$DOMAIN|g" \
+               -e "s|__PORT__|$port|g" -e "s|__CPORT__|$CPORT|g" "$1"; }
 
-sed -i \
-    -e "s|PublishPort=127\.0\.0\.1:[0-9]*:[0-9]*|PublishPort=127.0.0.1:$port:$CPORT|" \
-    -e "s|ContainerName=xdiag|ContainerName=$APP|" \
-    -e "s|^Description=xdiag .*|Description=$APP container|" \
-    -e "s|Image=localhost/xdiag:latest|Image=localhost/$APP:latest|" \
-    "$DEST/$APP.container"
-
-sed -i \
-    -e "s|^xdiag\.keton\.id {|$DOMAIN {|" \
-    -e "s|127\.0\.0\.1:18080|127.0.0.1:$port|" \
-    "$DEST/$APP.caddyfile"
+install -m 0755 "$TPL/deploy.sh" "$DEST/deploy.sh"
+render "$TPL/app.container" > "$DEST/$APP.container"
+render "$TPL/app.caddyfile" > "$DEST/$APP.caddyfile"
 
 printf 'scaffolded %s\n  domain  : https://%s\n  upstream: 127.0.0.1:%s -> container :%s\n' \
     "$DEST" "$DOMAIN" "$port" "$CPORT"

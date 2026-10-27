@@ -1,0 +1,28 @@
+# Deployment source of truth for __APP__ (template: podman quadlet).
+#
+# Static SPA image built with `podman build`. Runs rootless, published on
+# 127.0.0.1 only; Caddy terminates TLS and is the sole public entry point.
+
+[Unit]
+Description=__APP__ container
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+ContainerName=__APP__
+Image=localhost/__APP__:latest
+PublishPort=127.0.0.1:__PORT__:__CPORT__
+
+# Read-only root with a small writable /tmp keeps the attack surface minimal.
+ReadOnly=true
+Tmpfs=/tmp:rw,size=64m,mode=1777
+NoNewPrivileges=true
+DropCapability=ALL
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+# Rebuild the image separately (deploy.sh build) before restarting.
+
+[Install]
+WantedBy=default.target

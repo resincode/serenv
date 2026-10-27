@@ -1,0 +1,20 @@
+# Caddy site for this deployment.
+#
+# Installed to /etc/caddy/Caddyfile.d/ by ./deploy.sh.
+# Logs go to the journal (journalctl -u caddy); do not add a file log block —
+# the packaged caddy.service runs with ProtectSystem=full and cannot write
+# /var/log/caddy.
+
+__DOMAIN__ {
+	encode zstd gzip
+
+	# The container publishes only on loopback; Caddy is the single public entry point.
+	reverse_proxy 127.0.0.1:__PORT__
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+}

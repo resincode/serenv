@@ -39,6 +39,9 @@ Host conventions, already installed on this machine:
    quadlet and Caddy site templates, and rewrites the app name, port, and domain
    (`<app>.keton.id` by default). Nothing else needs hand-editing.
 
+   Templates live in this skill: `templates/deploy.sh`, `templates/app.container`,
+   `templates/app.caddyfile` (`__APP__`, `__DOMAIN__`, `__PORT__`, `__CPORT__` placeholders).
+
 3. **Build and publish.**
    ```bash
    cd ~/Deployments/<app>

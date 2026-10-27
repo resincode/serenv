@@ -12,7 +12,6 @@ fi
 # OMP Multi-User Context Display
 export PATH="$HOME/.local/bin:$PATH"
 export OMP_MODEL="${OMP_MODEL:-claude-haiku-4-5}"
-
 # Initialize Oh My Posh with custom multi-user config
 if command -v op &> /dev/null; then
     eval "$(op init zsh --config ~/.config/omp/config.json)"

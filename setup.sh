@@ -139,10 +139,19 @@ deploy_dotfiles() {
     deploy_file "$DOTFILES_DIR/zshrc-omp-addon"      "$HOME/.zshrc-omp-addon"
     deploy_file "$DOTFILES_DIR/config/omp/config.json" "$HOME/.config/omp/config.json"
     deploy_file "$DOTFILES_DIR/omp/models.yml"       "$HOME/.omp/agent/models.yml"
+    # OMP skills (agent capability packs)
+    for skill_dir in "$DOTFILES_DIR"/omp/skills/*/; do
+        [ -d "$skill_dir" ] || continue
+        local skill_name; skill_name="$(basename "$skill_dir")"
+        mkdir -p "$HOME/.omp/agent/skills/$skill_name"
+        cp -a "$skill_dir/." "$HOME/.omp/agent/skills/$skill_name/"
+        chmod +x "$HOME/.omp/agent/skills/$skill_name"/scripts/* 2>/dev/null || true
+        say "Deploy skill $skill_name"
+    done
 
     deploy_template "$HOME/.zshrc.local" "# ~/.zshrc.local — Host-specific environment and alias overrides for zsh"$'\n'"# Put machine-specific tokens, paths, or secrets here."
     deploy_template "$HOME/.tmux.conf.local" "# ~/.tmux.conf.local — Host-specific tmux keybindings and configuration overrides"$'\n'"# Put machine-specific tmux options here."
-    deploy_template "$HOME/.env" "# ~/.env — Secret keys and environment variables (loaded automatically by ~/.zshenv)"$'\n'"# API_KEY_MIDAS="$'\n'"# API_KEY_DPROUTER="
+    deploy_template "$HOME/.env" "# ~/.env — Secret keys and environment variables (loaded automatically by ~/.zshenv)"$'\n'"# API_KEY_MIDAS="$'\n'"# API_KEY_DPROUTER="$'\n'"# PAT_GITLABPLAYCOURT="
 }
 
 # ---------------------------------------------------------------------------
@@ -197,6 +206,7 @@ print_notes() {
     echo
     say "Setup selesai! Komponen serenv terkonfigurasi:"
     echo "  ✓ Dotfiles (.tmux.conf, .zshrc, .p10k.zsh, .zshenv, status-vitals)"
+    echo "  ✓ OMP skills (gitlab-playcourt, container-deploy)"
     echo "  ✓ Powerlevel10k prompt (~/.powerlevel10k)"
     echo "  ✓ Zinit plugin manager (~/.local/share/zinit)"
     echo "  ✓ TPM + tmux plugins (~/.tmux/plugins/)"

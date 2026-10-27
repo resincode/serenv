@@ -67,7 +67,7 @@ set -g status-justify  centre
 set -g status-left-length  150
 set -g status-right-length 150
 set -g status-left  "#{E:@catppuccin_status_session}#{E:@catppuccin_status_application}#{E:@catppuccin_status_directory}#{E:@catppuccin_status_uptime}"
-set -g status-right "#{E:@catppuccin_status_load}#{E:@catppuccin_status_ram}#{E:@catppuccin_status_disk}#{E:@catppuccin_status_date_time}"
+set -g status-right "#{E:@catppuccin_status_load}#{E:@catppuccin_status_ram}#{E:@catppuccin_status_disk}"
 ```
 
 - **Status-justify**: `centre` — daftar tab window berada di tengah status bar secara seimbang.
@@ -76,11 +76,10 @@ set -g status-right "#{E:@catppuccin_status_load}#{E:@catppuccin_status_ram}#{E:
   2. `application`: indikator nama perintah/aplikasi yang sedang aktif di pane (maroon pill).
   3. `directory`: nama direktori/path aktif (rosewater pill).
   4. `uptime`: uptime riil container dari `/proc/uptime` (sapphire pill).
-- **Status-right** (kanan atas, 4 modul):
-  1. `load`: utilisasi CPU riil container dari cgroup v2 (`/sys/fs/cgroup/cpu.stat`) dengan visual gauge (peach pill).
+- **Status-right** (kanan atas, 3 modul):
+  1. `load`: persentase utilisasi CPU riil container dari cgroup v2 (`/sys/fs/cgroup/cpu.stat`), tanpa gauge (peach pill).
   2. `ram`: visual gauge pemakaian memori terhadap batas limit cgroup container (mauve pill).
-  3. `disk`: visual gauge kapasitas storage root filesystem (teal pill).
-  4. `date_time`: format waktu ringkas jam & tanggal (sapphire pill).
+  3. `disk`: storage root filesystem dalam bentuk `<terpakai>/<total> GB`, tanpa gauge (teal pill).
 - **Script pembantu**: `~/.local/bin/status-vitals` yang mengekstrak metrik container secara akurat tanpa membaca metrik host Proxmox.
 
 **WAJIB pakai `#{E:@catppuccin_status_...}` (dengan `E:`).** Tanpa `E:`, tmux memasukkan nilai option tanpa re-expand format di dalamnya → teks literal seperti `@catppuccin_session_text` muncul di header (lihat Known Issues #4).
@@ -132,14 +131,27 @@ Konfigurasi Powerlevel10k tema Classic Powerline 2-baris dengan palet pastel kon
 ### `~/.local/bin/status-vitals` (snapshot: `dotfiles/local/bin/status-vitals`)
 
 Script pembantu status bar tmux untuk membaca metrik container LXC secara riil:
-- `status-vitals cpu` → CPU % aktual container dari `/sys/fs/cgroup/cpu.stat` (cgroup v2 delta).
-- `status-vitals ram` → Indicator bar memori terhadap limit container 4 GB dari `/proc/meminfo`.
-- `status-vitals disk` → Indicator bar disk terhadap limit storage container 25 GB.
+- `status-vitals cpu` → persentase CPU aktual container dari `/sys/fs/cgroup/cpu.stat` (cgroup v2 delta), tanpa bar.
+- `status-vitals ram` → Gauge memori (`■□□□□ <total>G`) terhadap limit container dari `/proc/meminfo`.
+- `status-vitals disk` → Pemakaian storage root filesystem dalam format `<terpakai>/<total> GB`, tanpa bar.
 - `status-vitals uptime` → Durasi uptime riil container dari `/proc/uptime`.
 
 ### `~/.zshrc-omp-addon` + `~/.config/omp/config.json`
 
 Arsip legacy Oh My Posh. Tidak dipakai di server (op tidak terpasang).
+
+### `~/.omp/agent/skills/` (snapshot: `dotfiles/omp/skills/`)
+
+Skill agent OMP (capability pack, format `<nama>/SKILL.md` + `scripts/`):
+- **`gitlab-playcourt`** — operasional repo GitLab `https://gitlab.playcourt.id` memakai PAT dari
+  `~/.env` (`PAT_GITLABPLAYCOURT`): clone, list project, baca file/tree, branch, MR, pipeline.
+  Helper: `scripts/glab` (API v4, token tidak pernah ditulis ke disk/remote URL).
+- **`container-deploy`** — deploy repo dari `~/Developments/<app>` sebagai container podman rootless
+  di `~/Deployments/<app>`, dipublikasikan sebagai `https://<app>.keton.id` lewat Caddy host.
+  Helper: `scripts/scaffold` (alokasi port loopback + render quadlet & site Caddy).
+
+Helper `git` global: `credential.https://gitlab.playcourt.id.helper` membaca
+`$PAT_GITLABPLAYCOURT` saat dipanggil, jadi push/fetch tidak menyimpan token ke `.git/config`.
 ---
 
 ## 4. Integrasi SSH → tmux
@@ -206,6 +218,9 @@ Flag: `--skip-packages` (tanpa install paket), `--skip-tpm` (tanpa clone/install
 7. **SSH non-interactive auto-attach tmux**: Menjalankan perintah remote satu kali (seperti `ssh host "cmd"` atau scp/sftp) bisa ter-hijack oleh perintah `exec tmux` jika guard di `.zshrc` hanya memeriksa TTY tanpa memeriksa interactive mode. Fix: guard diperketat dengan `[[ -o interactive && -t 0 && -t 1 && ( -n "$SSH_CONNECTION" || -n "$SSH_TTY" || -n "$SSH_CLIENT" ) && -z "$TMUX" ]]`.
 
 8. **Pemuatan Environment Variables di `.zshenv`**: Agar variabel rahasia/kunci API dari `~/.env` selalu tersedia bagi perintah non-interaktif maupun runner CLI (seperti `omp`), `.zshenv` me-load `~/.env` secara aman via `set -a; source "$HOME/.env"; set +a`.
+9. **Caddy tidak bisa menulis log file**: `caddy.service` bawaan distro memakai `ProtectSystem=full`, sehingga direktori `/var/log/caddy` tidak bisa ditulis (service gagal start dengan `open /var/log/caddy/*.log: permission denied`). Fix: jangan pakai blok `log { output file ... }`; biarkan log ke journal (`journalctl -u caddy`).
+10. **`caddy` tidak bisa membaca `~/Deployments`**: `$HOME` ber-`0700`, jadi site file tidak boleh di-`import` langsung dari `~`. Fix: `deploy.sh` meng-`install` site file ke `/etc/caddy/Caddyfile.d/<app>.caddyfile` (sudah di-import oleh `/etc/caddy/Caddyfile` bawaan).
+11. **HEALTHCHECK Dockerfile diabaikan podman**: build OCI format menghasilkan warning `HEALTHCHECK is not supported for OCI image format`. Jangan andalkan HEALTHCHECK; probe port langsung dari `deploy.sh up`.
 
 ---
 
@@ -217,8 +232,13 @@ Flag: `--skip-packages` (tanpa install paket), `--skip-tpm` (tanpa clone/install
 | `dotfiles/zshrc` | `~/.zshrc` | 2026-10-27 |
 | `dotfiles/zshenv` | `~/.zshenv` | 2026-10-27 |
 | `dotfiles/p10k.zsh` | `~/.p10k.zsh` | 2026-09-24 |
-| `dotfiles/local/bin/status-vitals` | `~/.local/bin/status-vitals` | 2026-09-24 |
+| `dotfiles/local/bin/status-vitals` | `~/.local/bin/status-vitals` | 2026-10-27 |
 | `dotfiles/zshrc-omp-addon` | `~/.zshrc-omp-addon` | 2026-09-22 |
 | `dotfiles/config/omp/config.json` | `~/.config/omp/config.json` | 2026-09-22 |
 | `dotfiles/omp/models.yml` | `~/.omp/agent/models.yml` | 2026-10-27 |
+| `dotfiles/omp/skills/gitlab-playcourt/` | `~/.omp/agent/skills/gitlab-playcourt/` | 2026-10-27 |
+| `dotfiles/omp/skills/container-deploy/` | `~/.omp/agent/skills/container-deploy/` | 2026-10-27 |
+
 Snapshot adalah salinan; config live di `~` tetap sumber yang dipakai. Kalau config live berubah dan ingin diarsipkan, perbarui snapshot.
+
+Deployment aplikasi (`~/Deployments/<app>/`) **tidak** disnapshot ke repo ini — lihat skill `container-deploy` untuk runbook dan layout-nya.

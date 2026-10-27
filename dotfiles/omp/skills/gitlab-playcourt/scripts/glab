@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# glab — GitLab Playcourt API helper (see SKILL.md)
+set -euo pipefail
+
+BASE="${GITLAB_PLAYCOURT_URL:-https://gitlab.playcourt.id}"
+API="$BASE/api/v4"
+
+if [ -z "${PAT_GITLABPLAYCOURT:-}" ] && [ -f "$HOME/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    . "$HOME/.env"
+    set +a
+fi
+
+if [ -z "${PAT_GITLABPLAYCOURT:-}" ]; then
+    echo "error: PAT_GITLABPLAYCOURT is not set (expected in ~/.env)" >&2
+    exit 1
+fi
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+# Percent-encode a project path or id for use as a path segment.
+enc() { printf '%s' "$1" | sed -e 's|/|%2F|g'; }
+
+# api <METHOD> <endpoint> [json-body] — prints body, fails on 4xx/5xx
+api() {
+    local method="$1" endpoint="$2" body="${3:-}"
+    local -a args=(-sS --max-time 60 -X "$method" -H "PRIVATE-TOKEN: $PAT_GITLABPLAYCOURT")
+    if [ -n "$body" ]; then
+        args+=(-H "Content-Type: application/json" --data-binary "$body")
+    fi
+    local out status
+    out="$(curl "${args[@]}" -w '\n%{http_code}' "$API/$endpoint")" || die "curl failed for $method $endpoint"
+    status="${out##*$'\n'}"
+    out="${out%$'\n'*}"
+    if [ "$status" -ge 400 ]; then
+        die "$method $endpoint -> HTTP $status: $(printf '%s' "$out" | head -c 400)"
+    fi
+    printf '%s\n' "$out"
+}
+
+cmd_whoami() {
+    api GET user | jq -r '"\(.username)  <\(.email)>  id=\(.id)"'
+}
+
+cmd_projects() {
+    local search="${1:-}"
+    local q="projects?per_page=100&order_by=last_activity_at&simple=true"
+    [ -n "$search" ] && q="$q&search=$(printf '%s' "$search" | sed -e 's| |%20|g')"
+    api GET "$q" | jq -r '.[] | "\(.id)\t\(.path_with_namespace)\t\(.default_branch)\t\(.visibility)"'
+}
+
+cmd_project() {
+    local p; p="$(enc "${1:?project required}")"
+    api GET "projects/$p" | jq '{id, path_with_namespace, default_branch, http_url_to_repo, ssh_url_to_repo, visibility, web_url}'
+}
+
+cmd_tree() {
+    local p ref; p="$(enc "${1:?project required}")"; ref="${2:-}"
+    local q="projects/$p/repository/tree?recursive=true&per_page=100"
+    [ -n "$ref" ] && q="$q&ref=$(printf '%s' "$ref" | sed -e 's|/|%2F|g')"
+    api GET "$q" | jq -r '.[] | "\(.type)\t\(.path)"'
+}
+
+cmd_file() {
+    local p f ref; p="$(enc "${1:?project required}")"; f="${2:?file required}"; ref="${3:-HEAD}"
+    local ef; ef="$(printf '%s' "$f" | sed -e 's|/|%2F|g')"
+    local er; er="$(printf '%s' "$ref" | sed -e 's|/|%2F|g')"
+    api GET "projects/$p/repository/files/$ef/raw?ref=$er"
+}
+
+cmd_branches() {
+    local p; p="$(enc "${1:?project required}")"
+    api GET "projects/$p/repository/branches?per_page=100" | jq -r '.[] | "\(.name)\t\(.commit.short_id)\t\(.commit.committed_date)"'
+}
+
+cmd_mrs() {
+    local p state; p="$(enc "${1:?project required}")"; state="${2:-opened}"
+    api GET "projects/$p/merge_requests?state=$state&per_page=50" \
+        | jq -r '.[] | "!\(.iid)\t\(.state)\t\(.source_branch) -> \(.target_branch)\t\(.title)"'
+}
+
+cmd_pipelines() {
+    local p; p="$(enc "${1:?project required}")"
+    api GET "projects/$p/pipelines?per_page=20" | jq -r '.[] | "\(.id)\t\(.status)\t\(.ref)\t\(.created_at)"'
+}
+
+cmd_clone() {
+    local path="${1:?project path required}" dest="${2:?destination required}"
+    local url clean
+    # Resolve canonical clone URL from the API rather than trusting caller input.
+    clean="$(api GET "projects/$(enc "$path")" | jq -r '.http_url_to_repo')"
+    [ -n "$clean" ] && [ "$clean" != "null" ] || die "could not resolve clone URL for $path"
+    url="$(printf '%s' "$clean" | sed -e "s|https://|https://oauth2:${PAT_GITLABPLAYCOURT}@|")"
+    mkdir -p "$(dirname "$dest")"
+    ( set +x; git -c credential.helper= clone "$url" "$dest" ) || die "clone failed"
+    # Strip the credential immediately: never leave it in .git/config.
+    git -C "$dest" remote set-url origin "$clean"
+    printf 'cloned %s -> %s (origin reset to %s)\n' "$path" "$dest" "$clean"
+}
+
+main() {
+    local cmd="${1:-}"; shift || true
+    case "$cmd" in
+        whoami)    cmd_whoami ;;
+        projects)  cmd_projects "$@" ;;
+        project)   cmd_project "$@" ;;
+        tree)      cmd_tree "$@" ;;
+        file)      cmd_file "$@" ;;
+        branches)  cmd_branches "$@" ;;
+        mrs)       cmd_mrs "$@" ;;
+        pipelines) cmd_pipelines "$@" ;;
+        clone)     cmd_clone "$@" ;;
+        api)       api "${1:?method}" "${2:?endpoint}" "${3:-}" ;;
+        *|help|-h|--help)
+            sed -n '2,30p' "$0" | sed -e 's/^# \{0,1\}//'
+            ;;
+    esac
+}
+
+main "$@"

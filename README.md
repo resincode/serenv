@@ -47,18 +47,17 @@ curl -fsSL https://raw.githubusercontent.com/resincode/serenv/main/install.sh | 
 Status bar Tmux dikonfigurasi di sisi atas (`top`) dengan komposisi modul yang seimbang dan simetris antara sisi kiri dan kanan, serta daftar tab window di posisi tengah (`centre`):
 
 ```text
-┌───────────────────────────────────────────────────────────────────────────────────────────────┐
-│ [session] [app] [dir] [uptime]      [ 1:main ] [ 2:code* ]     [cpu] [ram] [disk] [date_time] │
-│ └───────── status-left ─────────┘   └─ status-justify centre ─┘ └─────── status-right ──────┘ │
-└───────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────────────┐
+│ [session] [app] [dir] [uptime]      [ 1:main ] [ 2:code* ]            [cpu] [ram] [disk]  │
+│ └───────── status-left ─────────┘   └─ status-justify centre ─┘   └───── status-right ──┘ │
+└───────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 | Bagian | Posisi | Modul & Keterangan |
 |---|---|---|
 | **`status-left`** | Kiri atas (4 modul) | • **Session**: `#S · user@host` (identitas sesi aktif)<br>• **App**: ` <proc>` (indikator proses/aplikasi aktif di pane)<br>• **Dir**: ` <path>` (direktori kerja saat ini)<br>• **Uptime**: `󰔟 <duration>` (waktu aktif kontainer/server) |
 | **`status-justify`** | Tengah (`centre`) | • **Window Tabs**: Daftar tab window aktif/inaktif dengan style rounded pill Catppuccin Mocha dan indikator zoom `[Z]`. |
-| **`status-right`** | Kanan atas (4 modul) | • **CPU**: `󰊚 □□□□□ <%>` (gauge utilisasi cgroup v2)<br>• **RAM**: `󰘚 ■■■□□ <used>` (gauge memori terhadap limit cgroup container)<br>• **Disk**: `󰋊 ■□□□□ <used>` (gauge storage root filesystem)<br>• **Time**: `%H:%M  %d %b` (jam & tanggal ringkas) |
-
+| **`status-right`** | Kanan atas (3 modul) | • **CPU**: `󰊚 <%>` (persentase utilisasi CPU tanpa bar)<br>• **RAM**: `󰘚 ■■■□□ <used>` (gauge memori terhadap limit cgroup container)<br>• **Disk**: `󰋊 <used>/<total> GB` (storage terpakai/total dalam GB tanpa bar) |
 ---
 
 ## ✨ Fitur Utama
@@ -96,9 +95,8 @@ Status bar Tmux dikonfigurasi di sisi atas (`top`) dengan komposisi modul yang s
   - `zsh-z` (lompat ke direktori favorit dengan cepat).
 
 ### 3. Otomasi Auto-Attach Tmux saat SSH
-- Saat login ke sesi interaktif via SSH, Zsh secara cerdas melakukan atomic attach ke sesi Tmux bernama `resmote` (atau membuat sesi baru bila belum ada).
-- Proteksi nesting mencegah sesi Tmux bertumpuk di dalam sesi Tmux yang sudah aktif.
-
+- Saat login ke sesi interaktif via SSH, Zsh secara cerdas melakukan atomic attach ke sesi Tmux bernama `metra2` (atau membuat sesi baru bila belum ada).
+- Proteksi nesting mencegah sesi Tmux bertumpuk di dalam sesi Tmux yang sudah aktif, dan sesi non-interaktif tidak akan memicu Tmux.
 ### 4. Modular Local Overrides & Safe Backup
 - **Safe Deployment**: Setiap file konfigurasi lama di `$HOME` yang akan ditimpa otomatis dicadangkan ke `$HOME/.backup-serenv-<timestamp>/`.
 - **Local Overrides**:

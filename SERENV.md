@@ -16,7 +16,7 @@ Bahasa dokumentasi: Indonesia.
 Alacritty (mesin lokal)
   └─ tmux LOKAL (outer)              ← wajib set-clipboard on (lihat OSC52)
        └─ ssh ke server
-            └─ tmux SERVER "resmote"  ← auto-attach saat SSH
+            └─ tmux SERVER "metra2"   ← auto-attach saat SSH interaktif
                  └─ zsh (prompt p10k)
 ```
 
@@ -149,13 +149,12 @@ Dua mekanisme yang membuat sesi nyambung :
 1. **Auto-attach saat SSH** (di `.zshrc`, paling atas):
 
 ```zsh
-if [[ -n "$SSH_CONNECTION" && -z "$TMUX" ]]; then
-    exec tmux attach 2>/dev/null || exec tmux new-session -s resmote
+if [[ -o interactive && -t 0 && -t 1 && ( -n "$SSH_CONNECTION" || -n "$SSH_TTY" || -n "$SSH_CLIENT" ) && -z "$TMUX" ]]; then
+    exec tmux new-session -A -s metra2
 fi
 ```
 
-   Efek: login SSH langsung masuk (atau membuat) session tmux `resmote`, tanpa nested saat sudah di dalam tmux.
-
+   Efek: login SSH interaktif langsung masuk (atau membuat) session tmux `metra2`. Perintah SSH non-interaktif (one-off cmd, scp, sftp) tidak akan memicu tmux.
 2. **Auto-restore saat server start** (tmux-continuum): `@continuum-restore on` — sesi/window/pane (dan pane contents) dipulihkan dari save terakhir (interval 15 menit) oleh tmux-resurrect.
 
 ---

@@ -7,7 +7,7 @@
 # Only start persistent tmux on interactive SSH sessions (interactive shell + TTY).
 # Non-interactive SSH commands (e.g. ssh host "cmd", scp, sftp) will NOT launch tmux.
 if [[ -o interactive && -t 0 && -t 1 && ( -n "$SSH_CONNECTION" || -n "$SSH_TTY" || -n "$SSH_CLIENT" ) && -z "$TMUX" ]]; then
-    exec tmux new-session -A -s resmote
+    exec tmux new-session -A -s metra2
 fi
 # ─────────────────────────────────────────────────────────────────────────────
 

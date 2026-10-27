@@ -24,14 +24,7 @@ case "$1" in
     fi
     echo "$NOW $USAGE" > "$STAT"
     awk -v pct="$CPU_PCT" 'BEGIN {
-      len = 5
-      filled = int((pct * len + 50) / 100)
-      if (filled > len) filled = len
-      if (filled < 0) filled = 0
-      bar = ""
-      for (i=0; i<filled; i++) bar = bar "■"
-      for (i=0; i<len-filled; i++) bar = bar "□"
-      printf "%s %d%%", bar, pct
+      printf "%d%%", pct
     }'
     ;;
   ram)
@@ -51,18 +44,11 @@ case "$1" in
     ;;
   disk)
     df -hP / | awk 'NR==2 {
-      sub(/%/, "", $5)
-      pct = int($5)
-      len = 5
-      filled = int((pct * len + 50) / 100)
-      if (filled > len) filled = len
-      if (filled < 0) filled = 0
-      bar = ""
-      for (i=0; i<filled; i++) bar = bar "■"
-      for (i=0; i<len-filled; i++) bar = bar "□"
-      cap = $2
-      sub(/\.0G/, "G", cap)
-      printf "%s %s", bar, cap
+      used = $3
+      size = $2
+      sub(/G$/, "", used)
+      sub(/G$/, "", size)
+      printf "%s/%s GB", used, size
     }'
     ;;
   uptime)

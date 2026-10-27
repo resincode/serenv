@@ -138,9 +138,11 @@ deploy_dotfiles() {
     chmod +x "$HOME/.local/bin/status-vitals" 2>/dev/null || true
     deploy_file "$DOTFILES_DIR/zshrc-omp-addon"      "$HOME/.zshrc-omp-addon"
     deploy_file "$DOTFILES_DIR/config/omp/config.json" "$HOME/.config/omp/config.json"
+    deploy_file "$DOTFILES_DIR/omp/models.yml"       "$HOME/.omp/agent/models.yml"
 
     deploy_template "$HOME/.zshrc.local" "# ~/.zshrc.local — Host-specific environment and alias overrides for zsh"$'\n'"# Put machine-specific tokens, paths, or secrets here."
     deploy_template "$HOME/.tmux.conf.local" "# ~/.tmux.conf.local — Host-specific tmux keybindings and configuration overrides"$'\n'"# Put machine-specific tmux options here."
+    deploy_template "$HOME/.env" "# ~/.env — Secret keys and environment variables (loaded automatically by ~/.zshenv)"$'\n'"# API_KEY_MIDAS="$'\n'"# API_KEY_DPROUTER="
 }
 
 # ---------------------------------------------------------------------------

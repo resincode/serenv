@@ -2,8 +2,15 @@
 # ZSH ENVIRONMENT - Early Setup (loaded before .zshrc)
 # ============================================================================
 
+# Load environment variables from ~/.env (always available in all zsh executions)
+if [[ -f "$HOME/.env" ]]; then
+    set -a
+    source "$HOME/.env"
+    set +a
+fi
+
 # OMP Multi-User Context Display
-export PATH="/home/res/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 export OMP_MODEL="${OMP_MODEL:-claude-haiku-4-5}"
 
 # Initialize Oh My Posh with custom multi-user config

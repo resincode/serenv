@@ -111,8 +111,14 @@ Semua blok opsional di-guard `if`, jadi config aman walau tool-nya belum terpasa
 
 ### `~/.zshenv` (snapshot: `dotfiles/zshenv`)
 
+- Pemuatan `~/.env` otomatis jika file ada (`set -a; source "$HOME/.env"; set +a`) agar variabel rahasia/token selalu terdaftar di setiap pemanggilan zsh (termasuk runner non-interaktif seperti `omp`).
 - PATH ke `~/.local/bin`, `OMP_MODEL` (default `claude-haiku-4-5`)
 - Inisialisasi Oh My Posh — **tidak aktif** (`command -v op` gagal; prompt tetap p10k)
+
+### `~/.omp/agent/models.yml` (snapshot: `dotfiles/omp/models.yml`)
+
+- Konfigurasi provider LLM custom untuk `omp` (`midas` dan `dprouter`).
+- API key direferensikan via environment variable (`API_KEY_MIDAS` dan `API_KEY_DPROUTER`) tanpa hardcode kredensial.
 
 ### `~/.p10k.zsh` (snapshot: `dotfiles/p10k.zsh`)
 
@@ -196,17 +202,24 @@ Flag: `--skip-packages` (tanpa install paket), `--skip-tpm` (tanpa clone/install
 
 5. **Clone catppuccin salah nama**: harus di `~/.tmux/plugins/catppuccin`. TPM memakai fallback URL `https://git::@github.com/<plugin>` saat clone gagal — ini sumber remote aneh `git::@`. Pastikan instalasi lewat TPM (`prefix + I`) atau setup.sh, bukan clone manual ke folder lain.
 
+6. **Crash `tmux` (`SIGABRT` / `malloc_printerr`) saat auto-save continuum**: Pada `tmux-3.3a` (EL10/glibc 2.34), pemanggilan `tmux capture-pane` dari skrip auto-save `tmux-resurrect` mengalami memory corruption / double free ketika pane memuat formatting escape ANSI/unicode TUI dari tool seperti `omp`. Fix: `set -g @resurrect-capture-pane-contents 'off'`.
+
+7. **SSH non-interactive auto-attach tmux**: Menjalankan perintah remote satu kali (seperti `ssh host "cmd"` atau scp/sftp) bisa ter-hijack oleh perintah `exec tmux` jika guard di `.zshrc` hanya memeriksa TTY tanpa memeriksa interactive mode. Fix: guard diperketat dengan `[[ -o interactive && -t 0 && -t 1 && ( -n "$SSH_CONNECTION" || -n "$SSH_TTY" || -n "$SSH_CLIENT" ) && -z "$TMUX" ]]`.
+
+8. **Pemuatan Environment Variables di `.zshenv`**: Agar variabel rahasia/kunci API dari `~/.env` selalu tersedia bagi perintah non-interaktif maupun runner CLI (seperti `omp`), `.zshenv` me-load `~/.env` secara aman via `set -a; source "$HOME/.env"; set +a`.
+
 ---
 
 ## 7. Provenance (snapshot dotfiles)
 
 | File repo | Sumber live | Diambil |
 |---|---|---|
-| `dotfiles/tmux.conf` | `~/.tmux.conf` | 2026-09-24 |
-| `dotfiles/zshrc` | `~/.zshrc` | 2026-09-24 |
-| `dotfiles/zshenv` | `~/.zshenv` | 2026-09-22 |
+| `dotfiles/tmux.conf` | `~/.tmux.conf` | 2026-10-27 |
+| `dotfiles/zshrc` | `~/.zshrc` | 2026-10-27 |
+| `dotfiles/zshenv` | `~/.zshenv` | 2026-10-27 |
 | `dotfiles/p10k.zsh` | `~/.p10k.zsh` | 2026-09-24 |
 | `dotfiles/local/bin/status-vitals` | `~/.local/bin/status-vitals` | 2026-09-24 |
 | `dotfiles/zshrc-omp-addon` | `~/.zshrc-omp-addon` | 2026-09-22 |
 | `dotfiles/config/omp/config.json` | `~/.config/omp/config.json` | 2026-09-22 |
+| `dotfiles/omp/models.yml` | `~/.omp/agent/models.yml` | 2026-10-27 |
 Snapshot adalah salinan; config live di `~` tetap sumber yang dipakai. Kalau config live berubah dan ingin diarsipkan, perbarui snapshot.

@@ -1,0 +1,14 @@
+providers:
+  midas:
+    baseUrl: https://midas-stage.telkomdigital.id/v1
+    apiKey: API_KEY_MIDAS
+    api: openai-completions
+    discovery:
+      type: openai-models-list
+
+  dprouter:
+    baseUrl: https://dprouter.keton.id/v1
+    apiKey: API_KEY_DPROUTER
+    api: openai-completions
+    discovery:
+      type: openai-models-list

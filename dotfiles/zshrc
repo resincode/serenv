@@ -4,9 +4,9 @@
 # ============================================================================
 
 # ── Auto-attach tmux on SSH (atomic attach-or-create) ────────────────────────
-# Use new-session -A: creates session if not exists, attaches if exists
-# Guards: $SSH_CONNECTION (SSH only) + $TMUX (prevent nesting) + [[ -t 1 ]] (TTY)
-if [[ -z "$TMUX" ]] && [[ -n "$SSH_CONNECTION" ]] && [[ -t 1 ]]; then
+# Only start persistent tmux on interactive SSH sessions (interactive shell + TTY).
+# Non-interactive SSH commands (e.g. ssh host "cmd", scp, sftp) will NOT launch tmux.
+if [[ -o interactive && -t 0 && -t 1 && ( -n "$SSH_CONNECTION" || -n "$SSH_TTY" || -n "$SSH_CLIENT" ) && -z "$TMUX" ]]; then
     exec tmux new-session -A -s resmote
 fi
 # ─────────────────────────────────────────────────────────────────────────────
